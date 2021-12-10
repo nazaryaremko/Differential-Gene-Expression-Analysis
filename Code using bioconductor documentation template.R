@@ -6,10 +6,18 @@ install.packages('umap')
 library(umap)
 install.packages('gProfileR')
 library(gProfileR)
+library(stringr)
 
 #gets the data
 gse <- getGEO("GSE54839", GSEMatrix =TRUE, AnnotGPL=TRUE)
 gse <- gse[[1]]
+
+pData(gse) ## print the sample information
+fData(gse) ## print the gene annotation
+exprs(gse) ## print the expression data
+
+expression_data <- exprs(gse)
+
 #gets the log of expression data
 exprs(gse) <- log2(exprs(gse))
 
@@ -66,21 +74,36 @@ fit2 <- contrasts.fit(fit, contrasts)
 #by empirical Bayes moderation of the standard errors towards a common value.
 fit2 <- eBayes(fit2)
 table_1 <- topTable(fit2, adjust="fdr", sort.by="B", number=Inf)
-table_1 <- table_1[table_1$P.Value <0.05 , ]
+table_1 <- table_1[table_1$adj.P.Val <0.05 , ]
 IDs <- row.names(table_1)
 
 #creating a list where I will store differentially expressed genes
 dif_exp_genes <- c()
+#here I am using a code from GEO website to create gene annotations based on their ID 
 for (i in IDs){
   dif_exp_genes <- append(dif_exp_genes, fit2_website$genes[which(grepl(i, fit2_website$genes$ID)), 3])
 }
 dif_exp_genes
 
+#adding a new column to my table
+table_1$Gene_name <- dif_exp_genes
+table_1$Gene_name_and_p_value <- dif_exp_genes
 
+#adding a joined gene symbol - p-value column
+for (i in 1:nrow(table_1)){
+  table_1$Gene_name[i] <- str_remove_all(table_1$Gene_name[i], ' ')
+  if (table_1$Gene_name_and_p_value[i] != '') {
+    table_1$Gene_name_and_p_value[i] <- paste(table_1$Gene_name_and_p_value[i], table_1$adj.P.Val[i], sep=", ")
+  }
+}
+
+#creating a final table
+write.csv(table_1, "/Users/nazaryaremko/Desktop/diff_exp_genes.csv")
 #table(decideTests(fit2))
 #volcanoplot(fit2, coef=1, xlim=c(-2,2))
 
-#GO analysis      
+
+#GO analysis - not sure if this will be used yet   
 go_enrich_up <- gprofiler(as.vector(dif_exp_genes),organism='hsapiens')
 go_enrich_down <- gprofiler(as.vector(dif_exp_genes),organism='hsapiens')
 
