@@ -41,28 +41,7 @@ cts_website <- paste(groups_website[1], groups_website[2], sep="-")
 cont.matrix_website <- makeContrasts(contrasts=cts_website, levels=design_website)
 fit2_website <- contrasts.fit(fit_website, cont.matrix_website)
 
-
-          
 # compute statistics and table of top significant genes
 fit2_website <- eBayes(fit2_website, 0.01)
 tT_website <- topTable(fit2_website, adjust="fdr", sort.by="B", number=Inf)
-
-tT_website <- subset(tT_website, select=c("ID","adj.P.Val","P.Value","t","B","logFC","Gene.symbol","Gene.title"))
-write.table(tT_website, file=stdout(), row.names=F, sep="\t")
-
-as.vector(tT_website$Gene.symbol[tT_website$Cocaine...Control > 0])
-          
-# Visualize and quality control test results.
-# Build histogram of P-values for all genes. Normal test
-# assumption is that most genes are not differentially expressed.
-tT2_website <- topTable(fit2_website, adjust="fdr", sort.by="B", number=Inf)
-hist(tT2_website$adj.P.Val, col = "grey", border = "white", xlab = "P-adj",
-     ylab = "Number of genes", main = "P-adj value distribution")
-
-# summarize test results as "up", "down" or "not expressed"
-dT_website <- decideTests(fit2_website, adjust.method="fdr", p.value=0.05)
-
-genes_human_website <- tT2_website[tT2_website$P.Value<0.05,]$Gene.symbol
-options(max.print=100000)
-genes_human_website[2501:5350]
 
